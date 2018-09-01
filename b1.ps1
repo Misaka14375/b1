@@ -7,58 +7,68 @@ $currentPath=Split-Path -Parent $MyInvocation.MyCommand.Definition #当前文件
 $foo =($currentPath).Split('\\') 
 $av=$foo[$foo.Count-1] #av号
 
-if($type -eq "0")
+if($type -eq "1")
 {
-#视频
+    Get-ChildItem |?{$_.PsIsContainer -eq $true}| 
+    ForEach-Object{       
+       $list=$_.GetFiles()
+       $file='av{0}-p{1}' -f $av,$_.Name
+       $count=0     
+       foreach($item in $list)
+       {
+            if($item.Extension -eq ".flv")
+            {               
+                $name =$item.Name.Split('_')[2]
+                Rename-Item -Path $item.FullName -NewName $name  
+                $count++
+            }
+            if($item.Extension -eq ".xml")
+            {
+                Rename-Item -Path $item.FullName -NewName "$file.xml"
+            }
+       }    
+       cd $_.FullName 
+       for($i=0 ; $i -lt $count;$i++)
+       {
+            Out-File -FilePath filelist.txt -Append -Encoding ASCII -InputObject "file $i.flv"            
+       }           
+       ffmpeg -f concat -i filelist.txt -c copy "$file.mkv"   
+       cd $currentPath
+    }
+    Remove-Item ./* -Exclude *.mkv,*.xml,*ps1,*.jpg -Recurse #删掉其他文件
+}
+else
+{
     Get-ChildItem -Filter *.blv -Recurse |
     ForEach-Object{       
         cd $_.DirectoryName
-        Move-Item $_.Name -Destination ../    
-        Out-File -FilePath ../filelist.txt -Append -Encoding ASCII -InputObject "file $_" 
-    }
-    cd $currentPath
-#弹幕
-    Get-ChildItem -Filter *.xml -Recurse |
-    ForEach-Object{
-        $bar=($_.DirectoryName).Split('\\')
-        $partNumber=$bar[$bar.Count-1] #分p号
-        cd $_.DirectoryName
-        $newName = 'av{0}-p{1}.xml' -f $av,$partNumber
-        Rename-Item -Path $_.FullName -NewName $newName    
+        Move-Item $_.Name -Destination ../           
     }
     cd $currentPath
 
-    Get-ChildItem -Filter *.txt -Recurse |
-    ForEach-Object{
-        $bar=($_.DirectoryName).Split('\\')
-        $partNumber=$bar[$bar.Count-2] #分p号
-        $file='av{0}-p{1}.mkv' -f $av,$partNumber
-        cd $_.DirectoryName
-        ffmpeg -f concat -i filelist.txt -c copy "$file"
+    Get-ChildItem |?{$_.PsIsContainer -eq $true}| 
+    ForEach-Object{       
+       $list=$_.GetFiles()
+       $file='av{0}-p{1}' -f $av,$_.Name
+       $count=0     
+       foreach($item in $list)
+       {
+            if($item.Extension -eq ".blv")
+            {                 
+                $count++
+            }
+            if($item.Extension -eq ".xml")
+            {
+                Rename-Item -Path $item.FullName -NewName "$file.xml"
+            }
+       }    
+       cd $_.FullName 
+       for($i=0 ; $i -lt $count;$i++)
+       {
+            Out-File -FilePath filelist.txt -Append -Encoding ASCII -InputObject "file $i.flv"            
+       }           
+       ffmpeg -f concat -i filelist.txt -c copy "$file.mkv"   
+       cd $currentPath
     }
-    cd $currentPath
-    Remove-Item ./* -Exclude *.mkv,*.xml,*ps1 -Recurse #删掉其他文件
-}
-
-else
-{
-    $foo =($currentPath).Split('\\') 
-    Get-ChildItem -Filter *.flv -Recurse |
-    ForEach-Object{
-        cd $_.DirectoryName
-        Out-File -FilePath filelist.txt -Append -Encoding ASCII -InputObject "file $_" 
-    }
-
-    cd $currentPath
-
-    Get-ChildItem -Filter *.txt -Recurse |
-    ForEach-Object{
-        $bar=($_.DirectoryName).Split('\\')
-        $partNumber=$bar[$bar.Count-1] #分p号
-        $file='av{0}-p{1}.mkv' -f $av,$partNumber
-        cd $_.DirectoryName
-        ffmpeg -f concat -i filelist.txt -c copy "$file"
-    }
-    cd $currentPath
-    Remove-Item ./* -Exclude *.xml,*.ps1,*.jpg,*.mkv -Recurse #删掉其他文件
+    Remove-Item ./* -Exclude *.mkv,*.xml,*ps1,*.jpg -Recurse #删掉其他文件
 }
