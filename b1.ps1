@@ -65,7 +65,7 @@ else
        cd $_.FullName 
        for($i=0 ; $i -lt $count;$i++)
        {
-            Out-File -FilePath filelist.txt -Append -Encoding ASCII -InputObject "file $i.flv"            
+            Out-File -FilePath filelist.txt -Append -Encoding ASCII -InputObject "file $i.blv"            
        }           
        ffmpeg -f concat -i filelist.txt -c copy "$file.mkv"   
        cd $currentPath
